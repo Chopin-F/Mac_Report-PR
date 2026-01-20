@@ -1,4 +1,4 @@
-name: Build Osteoin App (Intel Rescue v2)
+name: Build Osteoin App (Intel SSL Fix)
 
 on:
   push:
@@ -13,29 +13,27 @@ jobs:
     
     - name: Install Intel Homebrew & Dependencies
       run: |
-        # 1. 홈브루가 설치될 메인 폴더 생성
+        # 1. 홈브루 폴더 구조 생성
         sudo mkdir -p /usr/local/Homebrew
-        
-        # 2. 필수 하위 폴더들 미리 생성 (에러 방지용)
-        # Cellar, Caskroom, Frameworks 등을 미리 만들어 권한 문제를 예방합니다.
         sudo mkdir -p /usr/local/bin /usr/local/etc /usr/local/include /usr/local/lib \
                       /usr/local/sbin /usr/local/share /usr/local/var /usr/local/opt \
                       /usr/local/share/zsh /usr/local/share/zsh/site-functions \
                       /usr/local/Cellar /usr/local/Caskroom /usr/local/Frameworks
-
-        # 3. 폴더 소유권 변경 (현재 사용자로)
         sudo chown -R $(whoami) /usr/local/*
 
-        # 4. 홈브루 다운로드 (Git Clone)
-        # --depth=1 옵션으로 최신만 받아서 속도를 높입니다.
+        # 2. 홈브루 다운로드
         git clone --depth=1 https://github.com/Homebrew/brew /usr/local/Homebrew
-        
-        # 5. brew 명령어 심볼릭 링크 생성
         ln -s /usr/local/Homebrew/bin/brew /usr/local/bin/brew
         
-        # 6. 인텔 모드로 gettext 설치 (시간 절약을 위해 업데이트 과정 생략)
+        # 3. [핵심] 인텔용 openssl 설치 (파이썬 SSL 에러 해결용)
         export HOMEBREW_NO_AUTO_UPDATE=1
-        arch -x86_64 /usr/local/bin/brew install gettext
+        # gettext와 openssl을 인텔 모드로 설치합니다.
+        arch -x86_64 /usr/local/bin/brew install gettext openssl@3
+        
+        # 4. 라이브러리 링크 연결 (파이썬이 찾을 수 있게)
+        # brew link를 강제로 수행하여 /usr/local/lib 등에 심볼릭 링크를 만듭니다.
+        arch -x86_64 /usr/local/bin/brew link gettext --force
+        arch -x86_64 /usr/local/bin/brew link openssl@3 --force
         
     - name: Set up Python
       uses: actions/setup-python@v5
