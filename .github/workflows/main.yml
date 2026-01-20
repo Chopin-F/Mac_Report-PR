@@ -1,4 +1,4 @@
-name: Build Mac App (Legacy)
+name: Build Osteoin App (Universal)
 
 on:
   push:
@@ -6,9 +6,8 @@ on:
 
 jobs:
   build-mac:
-    # 최신 맥 OS(macos-latest) 대신 구형 환경에 더 가까운 버전 사용
-    # GitHub 정책상 11이나 12가 최저일 수 있으나, 빌드 타겟을 낮추는 전략 사용
-    runs-on: macos-13 
+    # 최신 macOS (Apple Silicon) 러너 사용
+    runs-on: macos-14
     
     steps:
     - uses: actions/checkout@v4
@@ -16,41 +15,42 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        # [중요] 10.13 호환성을 위해 파이썬 버전을 3.9로 낮춤
+        # 10.13 호환성을 위해 3.9 버전 사용
         python-version: '3.9'
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # [중요] 구형 맥 호환성을 위해 라이브러리 버전을 고정하거나 낮춤
-        # pyinstaller 최신버전은 구형 OS 지원을 끊었을 수 있음 -> 5.x 버전대 사용
-        # PyQt5는 구버전이 호환성이 좋음 -> 5.15.x
+        # 구형 OS 호환성을 위해 라이브러리 버전 고정
         pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
         
-    - name: Build App with Target
+    - name: Build Osteoin App
       run: |
-        # [핵심] MACOSX_DEPLOYMENT_TARGET 환경변수 설정
-        # "이 앱은 10.13부터 실행된다"라고 강제로 지정함
+        # [핵심 1] 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
-        # 파일 이름 확인 후 빌드 (대소문자 체크 로직 포함)
+        # 파일 이름 확인 (대소문자 체크: osteoin.py)
         if [ -f "osteoin.py" ]; then
           SCRIPT="osteoin.py"
-        elif [ -f "osteoin.py" ]; then
-          SCRIPT="osteoin.py"
+        elif [ -f "Osteoin.py" ]; then
+          SCRIPT="Osteoin.py"
         else
-          echo "파일 없음!" && exit 1
+          echo "ERROR: osteoin.py 파일을 찾을 수 없습니다."
+          ls -R # 디버깅용 파일 목록 출력
+          exit 1
         fi
         
-        pyinstaller --noconsole --onefile --windowed --name "ScanMaster" "$SCRIPT"
+        # [핵심 2] 앱 이름도 Osteoin으로 변경, universal2 아키텍처 적용
+        pyinstaller --noconsole --onefile --windowed --target-arch universal2 --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
       run: |
         cd dist
-        zip -r ScanMaster_Legacy_Mac.zip ScanMaster.app
+        # 생성된 Osteoin.app을 압축
+        zip -r Osteoin_Mac_Universal.zip Osteoin.app
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Mac-App-Legacy-Download
-        path: dist/ScanMaster_Legacy_Mac.zip
+        name: Osteoin-App-Download
+        path: dist/Osteoin_Mac_Universal.zip
