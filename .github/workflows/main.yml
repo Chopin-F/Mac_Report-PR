@@ -25,16 +25,16 @@ jobs:
     - name: Build App
       run: |
         # 맥용 앱 빌드
-        pyinstaller --noconsole --onefile --windowed --name "ScanMaster" scanner.py
+        pyinstaller --noconsole --onefile --windowed --name "OsteoinReportPR" osteoin.py
         
     - name: Zip the App
       run: |
         cd dist
         # .app 폴더를 zip으로 압축
-        zip -r ScanMaster_Mac.zip ScanMaster.app
+        zip -r OsteoinReportPR_Mac.zip OsteoinReportPR.app
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4 # [중요] v3 -> v4로 수정됨
       with:
         name: Mac-App-Download
-        path: dist/ScanMaster_Mac.zip
+        path: dist/OsteoinReportPR_Mac.zip
