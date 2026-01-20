@@ -1,4 +1,4 @@
-name: Build Osteoin App (Stable Intel)
+name: Build Osteoin App (Intel Legacy Fixed)
 
 on:
   push:
@@ -6,22 +6,29 @@ on:
 
 jobs:
   build-mac:
-    # [중요] 경고가 뜨더라도 macos-13을 사용해야 합니다.
-    # 이것이 10.13 High Sierra를 지원하는 가장 확실한 인텔 환경입니다.
-    runs-on: macos-13
+    # [1] 최신 러너 사용 (이제 선택권이 없습니다)
+    runs-on: macos-latest
     
     steps:
     - uses: actions/checkout@v4
     
+    # [2] 인텔 파이썬 구동을 위한 필수 라이브러리 설치 (이게 없어서 아까 에러가 난 것임)
+    - name: Install System Dependencies for x64 Support
+      run: |
+        brew install gettext
+        brew link gettext --force
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
+        # [3] 최신 맥(ARM) 위에서 강제로 인텔(x64) 파이썬 환경을 구축
+        architecture: 'x64'
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 구형 맥 호환성을 위해 구버전 라이브러리 사용
+        # 구형 OS 호환성을 위해 라이브러리 버전 제한
         pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
@@ -29,7 +36,6 @@ jobs:
         # 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
-        # 파일 이름 확인
         if [ -f "osteoin.py" ]; then
           SCRIPT="osteoin.py"
         elif [ -f "Osteoin.py" ]; then
@@ -40,7 +46,7 @@ jobs:
           exit 1
         fi
         
-        # 인텔 맥에서 빌드하므로 별도 옵션 없이도 완벽한 인텔 앱이 생성됩니다.
+        # 인텔 파이썬 환경이므로 옵션 없이도 자동으로 인텔 앱이 생성됨
         pyinstaller --noconsole --onefile --windowed --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
