@@ -6,9 +6,8 @@ on:
 
 jobs:
   build-mac:
-    # [중요] 최신 러너의 호환성 문제를 피하기 위해
-    # Native Intel 환경인 macos-13을 사용합니다.
-    # 경고(Deprecated)가 뜨더라도 무시하세요. 이게 빌드가 됩니다.
+    # [중요] 경고가 뜨더라도 macos-13을 사용해야 합니다.
+    # 이것이 10.13 High Sierra를 지원하는 가장 확실한 인텔 환경입니다.
     runs-on: macos-13
     
     steps:
@@ -18,19 +17,19 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
-        # architecture 옵션 삭제 (macos-13은 기본이 x64이므로 필요 없음)
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 구형 OS 지원을 위해 라이브러리 버전 고정
-        pip install "pyinstaller<6.0.0" PyQt5 opencv-python-headless numpy pymupdf pillow
+        # 구형 맥 호환성을 위해 구버전 라이브러리 사용
+        pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
       run: |
         # 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
+        # 파일 이름 확인
         if [ -f "osteoin.py" ]; then
           SCRIPT="osteoin.py"
         elif [ -f "Osteoin.py" ]; then
@@ -41,9 +40,7 @@ jobs:
           exit 1
         fi
         
-        # [중요] 복잡한 옵션 다 빼고 기본으로 빌드합니다.
-        # macos-13에서 빌드하면 결과물은 자동으로 Intel용(x86_64)이 됩니다.
-        # 이 앱은 10.13(High Sierra)부터 최신 Sonoma까지 다 돌아갑니다.
+        # 인텔 맥에서 빌드하므로 별도 옵션 없이도 완벽한 인텔 앱이 생성됩니다.
         pyinstaller --noconsole --onefile --windowed --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
