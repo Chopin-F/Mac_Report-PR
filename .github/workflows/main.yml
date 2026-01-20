@@ -1,4 +1,4 @@
-name: Build Osteoin App (Intel via Rosetta)
+name: Build Osteoin App (Stable Intel)
 
 on:
   push:
@@ -6,8 +6,10 @@ on:
 
 jobs:
   build-mac:
-    # [변경 1] 경고를 피하기 위해 최신 러너(Apple Silicon) 사용
-    runs-on: macos-latest
+    # [중요] 최신 러너의 호환성 문제를 피하기 위해
+    # Native Intel 환경인 macos-13을 사용합니다.
+    # 경고(Deprecated)가 뜨더라도 무시하세요. 이게 빌드가 됩니다.
+    runs-on: macos-13
     
     steps:
     - uses: actions/checkout@v4
@@ -16,14 +18,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
-        # [핵심 비법] ARM 맥이지만 'Intel(x64)' 파이썬을 강제로 설치합니다.
-        # 이렇게 하면 모든 라이브러리가 Intel용으로 설치되고, 결과물도 Intel 앱이 됩니다.
-        architecture: 'x64'
+        # architecture 옵션 삭제 (macos-13은 기본이 x64이므로 필요 없음)
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 구형 맥 호환성을 위해 PyInstaller 버전 제한 유지
+        # 구형 OS 지원을 위해 라이브러리 버전 고정
         pip install "pyinstaller<6.0.0" PyQt5 opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
@@ -41,8 +41,9 @@ jobs:
           exit 1
         fi
         
-        # [중요] universal2 옵션 없이 그냥 빌드합니다.
-        # 이미 파이썬이 x64(Intel)이므로, 결과물도 자동으로 Intel 전용이 됩니다.
+        # [중요] 복잡한 옵션 다 빼고 기본으로 빌드합니다.
+        # macos-13에서 빌드하면 결과물은 자동으로 Intel용(x86_64)이 됩니다.
+        # 이 앱은 10.13(High Sierra)부터 최신 Sonoma까지 다 돌아갑니다.
         pyinstaller --noconsole --onefile --windowed --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
