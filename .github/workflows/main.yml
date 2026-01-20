@@ -1,0 +1,40 @@
+name: Build Mac App
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        # 맥 빌드용 라이브러리 (win32는 제외됨)
+        pip install opencv-python-headless numpy PyQt5 pymupdf pillow pyinstaller
+        
+    - name: Build App
+      run: |
+        # 맥용 앱 빌드 명령어
+        pyinstaller --noconsole --onefile --windowed --name "ScanMaster" scanner.py
+        
+    - name: Zip the App
+      run: |
+        cd dist
+        # 앱 파일을 zip으로 압축
+        zip -r ScanMaster_Mac.zip ScanMaster.app
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Mac-App-Download
+        path: dist/ScanMaster_Mac.zip
