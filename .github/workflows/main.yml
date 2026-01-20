@@ -1,4 +1,4 @@
-name: Build Osteoin App (Intel Legacy Fixed)
+name: Build Osteoin App (Intel Path Fix)
 
 on:
   push:
@@ -6,34 +6,40 @@ on:
 
 jobs:
   build-mac:
-    # [1] 최신 러너 사용 (이제 선택권이 없습니다)
+    # 최신 맥 러너 사용
     runs-on: macos-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    # [2] 인텔 파이썬 구동을 위한 필수 라이브러리 설치 (이게 없어서 아까 에러가 난 것임)
-    - name: Install System Dependencies for x64 Support
+    # [핵심] 인텔 파이썬이 길을 잃지 않도록 '가짜 주소(Symlink)'를 만들어줍니다.
+    - name: Fix Library Path for Intel Python
       run: |
+        # 1. gettext 설치
         brew install gettext
-        brew link gettext --force
+        
+        # 2. 인텔 파이썬이 찾는 폴더(/usr/local/opt)가 없으면 만듭니다.
+        sudo mkdir -p /usr/local/opt
+        
+        # 3. 실제 설치된 위치(/opt/homebrew...)를 인텔 파이썬이 찾는 위치(/usr/local...)로 연결합니다.
+        # 이렇게 하면 파이썬은 자기가 원하는 곳에 파일이 있다고 착각하고 실행됩니다.
+        sudo ln -s /opt/homebrew/opt/gettext /usr/local/opt/gettext
         
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
-        # [3] 최신 맥(ARM) 위에서 강제로 인텔(x64) 파이썬 환경을 구축
+        # 이제 경로 문제가 해결되었으므로 x64 파이썬이 정상 작동합니다.
         architecture: 'x64'
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 구형 OS 호환성을 위해 라이브러리 버전 제한
+        # 구형 맥 호환성을 위해 버전 고정
         pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
       run: |
-        # 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
         if [ -f "osteoin.py" ]; then
@@ -46,7 +52,7 @@ jobs:
           exit 1
         fi
         
-        # 인텔 파이썬 환경이므로 옵션 없이도 자동으로 인텔 앱이 생성됨
+        # 인텔 환경에서 빌드하므로 결과물은 Intel Mac(10.13) 호환 앱이 됩니다.
         pyinstaller --noconsole --onefile --windowed --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
