@@ -1,4 +1,4 @@
-name: Build Osteoin App (Universal)
+name: Build Osteoin App (Intel Legacy)
 
 on:
   push:
@@ -6,7 +6,9 @@ on:
 
 jobs:
   build-mac:
-    runs-on: macos-14
+    # [중요] 구형 맥 호환성을 위해 '인텔 기반' 러너인 macos-13을 사용합니다.
+    # 경고가 뜨더라도 무시하세요. 구형 OS 지원을 위해서는 이것이 최선입니다.
+    runs-on: macos-13
     
     steps:
     - uses: actions/checkout@v4
@@ -19,12 +21,12 @@ jobs:
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # [수정됨] PyQt5 버전을 지워서 최신 버전(Binary Wheel)을 받도록 함
-        # 최신 PyQt5도 Universal2 빌드시 구형 맥 호환성을 대부분 유지합니다.
+        # 최신 PyQt5 설치 (인텔 러너에서는 인텔용이 설치됨)
         pip install "pyinstaller<6.0.0" PyQt5 opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
       run: |
+        # 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
         if [ -f "osteoin.py" ]; then
@@ -37,15 +39,19 @@ jobs:
           exit 1
         fi
         
-        pyinstaller --noconsole --onefile --windowed --target-arch universal2 --name "Osteoin" "$SCRIPT"
+        # [중요] universal2 옵션 제거!
+        # macos-13에서 빌드하면 자동으로 인텔용 앱이 나옵니다.
+        # 이 앱은 구형 맥과 최신 맥 모두에서 작동합니다.
+        pyinstaller --noconsole --onefile --windowed --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
       run: |
         cd dist
-        zip -r Osteoin_Mac_Universal.zip Osteoin.app
+        # 결과물 압축
+        zip -r Osteoin_Mac_Intel.zip Osteoin.app
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Osteoin-App-Download
-        path: dist/Osteoin_Mac_Universal.zip
+        path: dist/Osteoin_Mac_Intel.zip
