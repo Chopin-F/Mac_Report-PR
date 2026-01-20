@@ -6,7 +6,6 @@ on:
 
 jobs:
   build-mac:
-    # 최신 macOS (Apple Silicon) 러너 사용
     runs-on: macos-14
     
     steps:
@@ -15,38 +14,34 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        # 10.13 호환성을 위해 3.9 버전 사용
         python-version: '3.9'
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 구형 OS 호환성을 위해 라이브러리 버전 고정
-        pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
+        # [수정됨] PyQt5 버전을 지워서 최신 버전(Binary Wheel)을 받도록 함
+        # 최신 PyQt5도 Universal2 빌드시 구형 맥 호환성을 대부분 유지합니다.
+        pip install "pyinstaller<6.0.0" PyQt5 opencv-python-headless numpy pymupdf pillow
         
     - name: Build Osteoin App
       run: |
-        # [핵심 1] 10.13부터 실행 가능하도록 타겟 지정
         export MACOSX_DEPLOYMENT_TARGET=10.13
         
-        # 파일 이름 확인 (대소문자 체크: osteoin.py)
         if [ -f "osteoin.py" ]; then
           SCRIPT="osteoin.py"
         elif [ -f "Osteoin.py" ]; then
           SCRIPT="Osteoin.py"
         else
           echo "ERROR: osteoin.py 파일을 찾을 수 없습니다."
-          ls -R # 디버깅용 파일 목록 출력
+          ls -R
           exit 1
         fi
         
-        # [핵심 2] 앱 이름도 Osteoin으로 변경, universal2 아키텍처 적용
         pyinstaller --noconsole --onefile --windowed --target-arch universal2 --name "Osteoin" "$SCRIPT"
         
     - name: Zip the App
       run: |
         cd dist
-        # 생성된 Osteoin.app을 압축
         zip -r Osteoin_Mac_Universal.zip Osteoin.app
         
     - name: Upload Artifact
