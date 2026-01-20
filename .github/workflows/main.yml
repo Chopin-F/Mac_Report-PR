@@ -1,4 +1,4 @@
-name: Build Mac App
+name: Build Mac App (Legacy)
 
 on:
   push:
@@ -6,35 +6,51 @@ on:
 
 jobs:
   build-mac:
-    runs-on: macos-latest
+    # 최신 맥 OS(macos-latest) 대신 구형 환경에 더 가까운 버전 사용
+    # GitHub 정책상 11이나 12가 최저일 수 있으나, 빌드 타겟을 낮추는 전략 사용
+    runs-on: macos-13 
     
     steps:
-    - uses: actions/checkout@v4  # v3 -> v4 업데이트
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v5 # v4 -> v5 업데이트
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        # [중요] 10.13 호환성을 위해 파이썬 버전을 3.9로 낮춤
+        python-version: '3.9'
         
     - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        # 맥 빌드용 라이브러리 설치
-        pip install opencv-python-headless numpy PyQt5 pymupdf pillow pyinstaller
+        # [중요] 구형 맥 호환성을 위해 라이브러리 버전을 고정하거나 낮춤
+        # pyinstaller 최신버전은 구형 OS 지원을 끊었을 수 있음 -> 5.x 버전대 사용
+        # PyQt5는 구버전이 호환성이 좋음 -> 5.15.x
+        pip install "pyinstaller<6.0.0" "PyQt5==5.15.9" opencv-python-headless numpy pymupdf pillow
         
-    - name: Build App
+    - name: Build App with Target
       run: |
-        # 맥용 앱 빌드
-        pyinstaller --noconsole --onefile --windowed --name "OsteoinReportPR" osteoin.py
+        # [핵심] MACOSX_DEPLOYMENT_TARGET 환경변수 설정
+        # "이 앱은 10.13부터 실행된다"라고 강제로 지정함
+        export MACOSX_DEPLOYMENT_TARGET=10.13
+        
+        # 파일 이름 확인 후 빌드 (대소문자 체크 로직 포함)
+        if [ -f "osteoin.py" ]; then
+          SCRIPT="osteoin.py"
+        elif [ -f "osteoin.py" ]; then
+          SCRIPT="osteoin.py"
+        else
+          echo "파일 없음!" && exit 1
+        fi
+        
+        pyinstaller --noconsole --onefile --windowed --name "ScanMaster" "$SCRIPT"
         
     - name: Zip the App
       run: |
         cd dist
-        # .app 폴더를 zip으로 압축
-        zip -r OsteoinReportPR_Mac.zip OsteoinReportPR.app
+        zip -r ScanMaster_Legacy_Mac.zip ScanMaster.app
         
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4 # [중요] v3 -> v4로 수정됨
+      uses: actions/upload-artifact@v4
       with:
-        name: Mac-App-Download
-        path: dist/OsteoinReportPR_Mac.zip
+        name: Mac-App-Legacy-Download
+        path: dist/ScanMaster_Legacy_Mac.zip
